@@ -1,0 +1,14 @@
+template CreatedAt {
+    created_at DateTimeTz @default(now())
+}
+
+// dont worry
+entity Post: CreatedAt {
+    id UUID @id
+    title String @unique
+    description String @nullable
+}
+
+entity FeaturedPost inherits(Post) {
+    featured_until DateTimeTz
+}

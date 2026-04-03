@@ -1,0 +1,206 @@
+// ====================
+// ROOT
+// ====================
+
+file = {
+    SOI
+    ~ config?
+    ~ declaration*
+    ~ EOI
+}
+
+declaration = {
+    enum_declaration
+    | template_declaration
+    | entity_declaration
+}
+
+// ====================
+// CONFIG
+// ====================
+
+config = {
+    "config" ~ "{" ~
+        config_entry*
+    ~ "}"
+}
+
+config_entry = {
+    identifier ~ ":" ~ value
+}
+
+// ====================
+// ENUM
+// ====================
+
+enum_declaration = {
+    schema_prefix? ~ "enum" ~ identifier ~ "{" ~
+        enum_body*
+    ~ "}"
+}
+
+enum_body = _{
+    enum_value
+    | block_attribute
+}
+
+// ====================
+// TEMPLATE
+// ====================
+
+template_declaration = {
+    "template" ~ identifier ~ "{" ~
+        template_body
+    ~ "}"
+}
+
+template_body = _{
+    field
+    | block_attribute
+}
+
+// ====================
+// ENTITY
+// ====================
+
+entity_declaration = {
+    schema_prefix ~ "entity" ~ identifier ~ template_usage? ~ inheritance_usage? ~ "{" ~
+        entity_body*
+    ~ "}"
+}
+
+template_usage = {
+    ":" ~ identifier_list
+}
+
+inheritance_usage = {
+    "inherits" ~ "(" ~ identifier_list ~ ")"
+}
+
+entity_body = _{
+    field
+    | block_attribute
+}
+
+// ====================
+// FIELDS
+// ====================
+
+field = {
+    identifier ~ type_expr ~ field_attribute*
+}
+
+// ====================
+// TYPES
+// ====================
+
+type_expr = {
+    identifier ~ type_args?
+}
+
+type_args = {
+    "(" ~ value_list?  ~ ")"
+}
+
+// ====================
+// IDENTIFIERS
+// ====================
+
+identifier = @{
+    (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")*
+}
+
+qualified_identifier = {
+    (schema_prefix ~ ".")? ~ identifier ~ ("." ~ identifier)*
+}
+
+identifier_list = {
+    identifier ~ ("," ~ identifier)* ~ comma?
+}
+
+// ====================
+// ATTRIBUTES
+// ====================
+
+field_attribute = {
+    "@" ~ identifier ~ attribute_args?
+}
+
+block_attribute = {
+    "@@" ~ identifier ~ attribute_args
+}
+
+attribute_args = {
+    "(" ~ argument_list? ~ ")"
+}
+
+argument_list = {
+    argument ~ ("," ~ argument)* ~ comma?
+}
+
+argument = {
+    named_argument
+    | value
+}
+
+named_argument = {
+    identifier ~ ":" ~ value
+}
+
+// ====================
+// VALUES
+// ====================
+
+value = _{
+    function_call
+    | qualified_identifier
+    | string_literal
+    | integer_literal
+    | float_literal
+}
+
+value_list = {
+    value ~ ("," ~ value)* ~ comma?
+}
+
+// ====================
+// FUNCTION CALLS
+// ====================
+
+function_call = {
+    identifier ~ "(" ~ value_list? ~ ")"
+}
+
+// ====================
+// LITERALS
+// ====================
+
+string_literal = @{
+    "\"" ~ ("\\\"" | !("\"") ~ ANY )* ~ "\""
+}
+
+integer_literal = @{
+    ASCII_DIGIT+
+}
+
+float_literal = @{
+    ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)?
+}
+
+// ====================
+// WHITESPACE & COMMENTS
+// ====================
+
+WHITESPACE = _{ " " | "\t" | NEWLINE }
+
+COMMENT = _{ "//" ~ (!NEWLINE ~ ANY)* }
+
+NEWLINE = _{ "\r\n" | "\n" }
+
+// ====================
+// MISC
+// ====================
+
+schema_prefix = { string_literal }
+
+comma = _{ "," }
