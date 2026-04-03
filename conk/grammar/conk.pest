@@ -181,11 +181,11 @@ string_literal = @{
 }
 
 integer_literal = @{
-    ASCII_DIGIT+
+    ("+" | "-")? ~ ASCII_DIGIT+
 }
 
 float_literal = @{
-    ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+
+    ("+" | "-")? ~ ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+
 }
 
 list_literal = {
