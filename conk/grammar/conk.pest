@@ -35,13 +35,18 @@ config_entry = {
 
 enum_declaration = {
     schema_prefix? ~ "enum" ~ identifier ~ "{" ~
-        enum_body*
+        enum_body
     ~ "}"
 }
 
 enum_body = _{
-    enum_value
-    | block_attribute
+    block_attribute*
+    ~ enum_value+
+    ~ block_attribute*
+}
+
+enum_value = {
+    identifier
 }
 
 // ====================
@@ -55,8 +60,7 @@ template_declaration = {
 }
 
 template_body = _{
-    field
-    | block_attribute
+    (field | block_attribute)*
 }
 
 // ====================
@@ -64,8 +68,8 @@ template_body = _{
 // ====================
 
 entity_declaration = {
-    schema_prefix ~ "entity" ~ identifier ~ template_usage? ~ inheritance_usage? ~ "{" ~
-        entity_body*
+    schema_prefix? ~ "entity" ~ identifier ~ template_usage? ~ inheritance_usage? ~ "{" ~
+        entity_body
     ~ "}"
 }
 
@@ -78,8 +82,7 @@ inheritance_usage = {
 }
 
 entity_body = _{
-    field
-    | block_attribute
+    (field | block_attribute)*
 }
 
 // ====================
@@ -152,11 +155,12 @@ named_argument = {
 // ====================
 
 value = _{
-    function_call
-    | qualified_identifier
-    | string_literal
+    string_literal
     | integer_literal
     | float_literal
+    | list_literal
+    | function_call
+    | qualified_identifier
 }
 
 value_list = {
@@ -185,6 +189,10 @@ integer_literal = @{
 
 float_literal = @{
     ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)?
+}
+
+list_literal = {
+    "[" ~ value_list? ~ "]"
 }
 
 // ====================

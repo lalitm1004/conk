@@ -1,14 +1,48 @@
+config {
+    default_schema: "public"
+}
+
+"auth" enum UserRole {
+    Admin
+    Editor
+    Viewer
+
+    @@map("UserRoleEnum")
+}
+
 template CreatedAt {
     created_at DateTimeTz @default(now())
 }
 
-// dont worry
-entity Post: CreatedAt {
-    id UUID @id
-    title String @unique
+template RandomTemplate {
+    random String @nullable
+}
+
+entity User: CreatedAt {
+    id UUID @id @default(gen_random_uuid())
+    name String
+    email String @unique
+    role UserRole
+
+    @@index([name, email])
+}
+
+entity City: CreatedAt {
+    id UUID @id @default(gen_random_uuid())
+    name String
     description String @nullable
 }
 
-entity FeaturedPost inherits(Post) {
-    featured_until DateTimeTz
+entity CapitalCity: RandomTemplate
+    inherits (City, EntityThatDoesNotExist) {
+    state String
+
+    @@map("capital_city")
+}
+
+"public" entity Post {
+    id UUID @id @default(gen_random_uuid())
+    created_by UUID @ref(User.id, on_delete: Cascade, on_update: Restrict)
+
+    @@map("post")
 }
