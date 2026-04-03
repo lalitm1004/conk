@@ -36,4 +36,7 @@ pub enum SemanticError {
 
     #[error("Duplicate field attribute on '{field}': @{attribute}")]
     DuplicateFieldAttribute { field: String, attribute: String },
+
+    #[error("Duplicate argument name: {0}")]
+    DuplicateArgumentName(String),
 }

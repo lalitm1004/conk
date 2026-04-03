@@ -5,7 +5,7 @@ mod field;
 mod file;
 mod value;
 
-pub use attribute::{Argument, BlockAttribute, FieldAttribute};
+pub use attribute::{ArgumentList, BlockAttribute, FieldAttribute, NamedArgument};
 pub use config::Config;
 pub use declaration::{Declaration, Entity, Enum, Template};
 pub use field::{Field, TypeExpr};

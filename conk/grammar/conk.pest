@@ -132,13 +132,14 @@ attribute_args = {
     "(" ~ argument_list? ~ ")"
 }
 
-argument_list = {
-    argument ~ ("," ~ argument)* ~ ","?
-}
+positional_argument = _{ !(identifier ~ ":") ~ value }
+positional_args = _{ positional_argument ~ ("," ~ positional_argument)* }
+named_args = _{ named_argument ~ ("," ~ named_argument)* }
 
-argument = {
-    named_argument
-    | value
+argument_list = {
+    (positional_args ~ "," ~ named_args ~ ","?)
+    | (named_args ~ ","?)
+    | (positional_args ~ ","?)
 }
 
 named_argument = {
@@ -169,7 +170,7 @@ value_list = {
 
 // Represents SQL/schema functions: now(), gen_random_uuid(), array_agg(col)
 function_call = {
-    identifier ~ "(" ~ value_list? ~ ")"
+    identifier ~ "(" ~ argument_list? ~ ")"
 }
 
 // ====================

@@ -3,8 +3,8 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use crate::ast::{
-    Argument, BlockAttribute, Config, ConkFile, Declaration, Entity, Enum, Field, FieldAttribute,
-    Template, TypeExpr, Value,
+    ArgumentList, BlockAttribute, Config, ConkFile, Declaration, Entity, Enum, Field, FieldAttribute,
+    NamedArgument, Template, TypeExpr, Value,
 };
 use crate::parser::error::{Error, SemanticError};
 use crate::parser::pest::{ConkParser, Rule};
@@ -212,11 +212,11 @@ fn parse_field(pair: pest::iterators::Pair<Rule>) -> Result<Field, Error> {
     for attr_pair in inner {
         let attr = parse_field_attribute(attr_pair)?;
         if !seen_attrs.insert(attr.name.clone()) {
-                    return Err(SemanticError::DuplicateFieldAttribute {
-                        field: name.clone(),
-                        attribute: attr.name,
-                    }
-                    .into());
+            return Err(SemanticError::DuplicateFieldAttribute {
+                field: name.clone(),
+                attribute: attr.name,
+            }
+            .into());
         }
         attributes.push(attr);
     }
@@ -247,7 +247,7 @@ fn parse_type_expr(pair: pest::iterators::Pair<Rule>) -> Result<TypeExpr, Error>
 fn parse_field_attribute(pair: pest::iterators::Pair<Rule>) -> Result<FieldAttribute, Error> {
     let mut inner = pair.into_inner();
     let name = parse_identifier(inner.next().unwrap());
-    let mut args = Vec::new();
+    let mut args = ArgumentList::default();
 
     if let Some(args_pair) = inner.next() {
         if let Some(list_pair) = args_pair.into_inner().next() {
@@ -261,7 +261,7 @@ fn parse_field_attribute(pair: pest::iterators::Pair<Rule>) -> Result<FieldAttri
 fn parse_block_attribute(pair: pest::iterators::Pair<Rule>) -> Result<BlockAttribute, Error> {
     let mut inner = pair.into_inner();
     let name = parse_identifier(inner.next().unwrap());
-    let mut args = Vec::new();
+    let mut args = ArgumentList::default();
 
     let args_pair = inner.next().unwrap();
     if let Some(list_pair) = args_pair.into_inner().next() {
@@ -271,22 +271,25 @@ fn parse_block_attribute(pair: pest::iterators::Pair<Rule>) -> Result<BlockAttri
     Ok(BlockAttribute { name, args })
 }
 
-fn parse_argument_list(pair: pest::iterators::Pair<Rule>) -> Result<Vec<Argument>, Error> {
-    let mut args = Vec::new();
-    for arg_pair in pair.into_inner() {
-        let inner = arg_pair.into_inner().next().unwrap();
+fn parse_argument_list(pair: pest::iterators::Pair<Rule>) -> Result<ArgumentList, Error> {
+    let mut args = ArgumentList::default();
+    let mut seen_names = HashSet::new();
+    for inner in pair.into_inner() {
         match inner.as_rule() {
             Rule::named_argument => {
                 let mut kv = inner.into_inner();
                 let name = parse_identifier(kv.next().unwrap());
+                if !seen_names.insert(name.clone()) {
+                    return Err(SemanticError::DuplicateArgumentName(name).into());
+                }
                 let value = parse_value(kv.next().unwrap())?;
-                args.push(Argument::Named { name, value });
+                args.named.push(NamedArgument { name, value });
             }
 
             _ => {
                 // Must be a value
                 let value = parse_value(inner)?;
-                args.push(Argument::Positional(value));
+                args.positional.push(value);
             }
         }
     }
@@ -314,12 +317,13 @@ fn parse_value(pair: pest::iterators::Pair<Rule>) -> Result<Value, Error> {
         Rule::function_call => {
             let mut inner = pair.into_inner();
             let name = parse_identifier(inner.next().unwrap());
-            let mut args = Vec::new();
+
+            let mut args = ArgumentList::default();
+
             if let Some(list) = inner.next() {
-                for item in list.into_inner() {
-                    args.push(parse_value(item)?);
-                }
+                args = parse_argument_list(list)?;
             }
+
             Ok(Value::FunctionCall { name, args })
         }
 

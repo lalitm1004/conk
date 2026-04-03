@@ -1,3 +1,5 @@
+use crate::ast::ArgumentList;
+
 #[derive(Debug, Clone)]
 pub enum Value {
     String(String),
@@ -8,7 +10,7 @@ pub enum Value {
 
     QualifiedIdentifier(Vec<String>),
 
-    FunctionCall { name: String, args: Vec<Value> },
+    FunctionCall { name: String, args: ArgumentList },
 
     List(Vec<Value>),
 }
