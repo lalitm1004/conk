@@ -35,14 +35,10 @@ config_entry = {
 
 enum_declaration = {
     schema_prefix? ~ "enum" ~ identifier ~ "{" ~
-        enum_body
+        block_attribute*
+        ~ enum_value+
+        ~ block_attribute*
     ~ "}"
-}
-
-enum_body = _{
-    block_attribute*
-    ~ enum_value+
-    ~ block_attribute*
 }
 
 enum_value = {
@@ -55,12 +51,8 @@ enum_value = {
 
 template_declaration = {
     "template" ~ identifier ~ "{" ~
-        template_body
+        (field | block_attribute)*
     ~ "}"
-}
-
-template_body = _{
-    (field | block_attribute)*
 }
 
 // ====================
@@ -68,8 +60,11 @@ template_body = _{
 // ====================
 
 entity_declaration = {
-    schema_prefix? ~ "entity" ~ identifier ~ template_usage? ~ inheritance_usage? ~ "{" ~
-        entity_body
+    schema_prefix? ~ "entity" ~ identifier
+    ~ template_usage?
+    ~ inheritance_usage?
+    ~ "{" ~
+        (field | block_attribute)*
     ~ "}"
 }
 
@@ -79,10 +74,6 @@ template_usage = {
 
 inheritance_usage = {
     "inherits" ~ "(" ~ identifier_list ~ ")"
-}
-
-entity_body = _{
-    (field | block_attribute)*
 }
 
 // ====================
@@ -97,12 +88,13 @@ field = {
 // TYPES
 // ====================
 
+// Covers bare types (String, UUID) and parameterised types (VARCHAR(255), NUMERIC(10, 2))
 type_expr = {
-    identifier ~ type_args?
+    identifier ~ type_params?
 }
 
-type_args = {
-    "(" ~ value_list?  ~ ")"
+type_params = {
+    "(" ~ value_list? ~ ")"
 }
 
 // ====================
@@ -113,22 +105,25 @@ identifier = @{
     (ASCII_ALPHA | "_") ~ (ASCII_ALPHANUMERIC | "_")*
 }
 
+// Used in values - supports schema-qualified refs like User.id or "public".users
 qualified_identifier = {
-    (schema_prefix ~ ".")? ~ identifier ~ ("." ~ identifier)*
+    (schema_prefix ~ ".")? ~ identifier ~ ("." ~ identifier)+
 }
 
 identifier_list = {
-    identifier ~ ("," ~ identifier)* ~ comma?
+    identifier ~ ("," ~ identifier)* ~ ","?
 }
 
 // ====================
 // ATTRIBUTES
 // ====================
 
+// Field-level: @id, @default(now()), @ref(User.id, on_delete: Cascade)
 field_attribute = {
     "@" ~ identifier ~ attribute_args?
 }
 
+// Block-level: @@map("table_name"), @@index([col1, col2])
 block_attribute = {
     "@@" ~ identifier ~ attribute_args
 }
@@ -138,7 +133,7 @@ attribute_args = {
 }
 
 argument_list = {
-    argument ~ ("," ~ argument)* ~ comma?
+    argument ~ ("," ~ argument)* ~ ","?
 }
 
 argument = {
@@ -155,22 +150,24 @@ named_argument = {
 // ====================
 
 value = _{
-    string_literal
+    float_literal       // must come before integer_literal
     | integer_literal
-    | float_literal
     | list_literal
-    | function_call
+    | function_call     // must come before qualified_identifier (both start with identifier)
     | qualified_identifier
+    | identifier
+    | string_literal
 }
 
 value_list = {
-    value ~ ("," ~ value)* ~ comma?
+    value ~ ("," ~ value)* ~ ","?
 }
 
 // ====================
 // FUNCTION CALLS
 // ====================
 
+// Represents SQL/schema functions: now(), gen_random_uuid(), array_agg(col)
 function_call = {
     identifier ~ "(" ~ value_list? ~ ")"
 }
@@ -180,7 +177,7 @@ function_call = {
 // ====================
 
 string_literal = @{
-    "\"" ~ ("\\\"" | !("\"") ~ ANY )* ~ "\""
+    "\"" ~ ("\\\"" | !"\"" ~ ANY)* ~ "\""
 }
 
 integer_literal = @{
@@ -188,7 +185,7 @@ integer_literal = @{
 }
 
 float_literal = @{
-    ASCII_DIGIT+ ~ ("." ~ ASCII_DIGIT+)?
+    ASCII_DIGIT+ ~ "." ~ ASCII_DIGIT+
 }
 
 list_literal = {
@@ -196,19 +193,16 @@ list_literal = {
 }
 
 // ====================
+// SCHEMA PREFIX
+// ====================
+
+// A quoted schema name prefixing an entity or enum: "auth" enum Foo { ... }
+schema_prefix = { string_literal }
+
+// ====================
 // WHITESPACE & COMMENTS
 // ====================
 
-WHITESPACE = _{ " " | "\t" | NEWLINE }
+WHITESPACE = _{ " " | "\t" | "\r\n" | "\n" }
 
-COMMENT = _{ "//" ~ (!NEWLINE ~ ANY)* }
-
-NEWLINE = _{ "\r\n" | "\n" }
-
-// ====================
-// MISC
-// ====================
-
-schema_prefix = { string_literal }
-
-comma = _{ "," }
+COMMENT = _{ "//" ~ (!("\r\n" | "\n") ~ ANY)* }

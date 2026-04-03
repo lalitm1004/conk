@@ -42,7 +42,7 @@ entity CapitalCity: RandomTemplate
 
 "public" entity Post {
     id UUID @id @default(gen_random_uuid())
-    created_by UUID @ref(User.id, on_delete: Cascade, on_update: Restrict)
+    created_by UUID @ref("public".User.id, on_delete: Cascade, on_update: Restrict)
 
     @@map("post")
 }
