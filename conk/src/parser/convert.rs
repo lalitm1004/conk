@@ -3,21 +3,21 @@ use std::collections::{HashMap, HashSet};
 use std::path::Path;
 
 use crate::ast::{
-    ArgumentList, BlockAttribute, Config, ConkFile, Declaration, Entity, Enum, Field, FieldAttribute,
-    NamedArgument, Template, TypeExpr, Value,
+    ArgumentList, BlockAttribute, Config, ConkAST, Declaration, Entity, Enum, Field,
+    FieldAttribute, NamedArgument, Template, TypeExpr, Value,
 };
 use crate::parser::error::{Error, SemanticError};
 use crate::parser::pest::{ConkParser, Rule};
 
-pub fn parse_file_from_path(path: impl AsRef<Path>) -> Result<ConkFile, Error> {
+pub fn parse_ast_from_file(path: impl AsRef<Path>) -> Result<ConkAST, Error> {
     let path = path.as_ref();
     let input = std::fs::read_to_string(path)?;
 
-    let conk_file = parse_file_from_str(&input)?;
+    let conk_file = parse_ast_from_string(&input)?;
     Ok(conk_file)
 }
 
-pub fn parse_file_from_str(input: &str) -> Result<ConkFile, Error> {
+pub fn parse_ast_from_string(input: &str) -> Result<ConkAST, Error> {
     let mut pairs = ConkParser::parse(Rule::file, input)?;
     let file_pair = pairs.next().unwrap();
 
@@ -50,7 +50,7 @@ pub fn parse_file_from_str(input: &str) -> Result<ConkFile, Error> {
         }
     }
 
-    Ok(ConkFile {
+    Ok(ConkAST {
         config,
         declarations,
     })

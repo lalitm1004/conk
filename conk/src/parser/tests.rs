@@ -1,6 +1,6 @@
 /// NOTE: The syntax used in the tests are not indicative
 /// of the actual syntax that will be used for the DSL
-use super::convert::{parse_file_from_path, parse_file_from_str};
+use super::convert::{parse_ast_from_file, parse_ast_from_string};
 use crate::ast::{Declaration, NamedArgument, Value};
 use crate::parser::error::{Error, SemanticError};
 use std::io::Write;
@@ -9,12 +9,12 @@ use std::io::Write;
 // HELPERS
 // ============================================================
 
-fn parse_ok(input: &str) -> crate::ast::ConkFile {
-    parse_file_from_str(input).unwrap_or_else(|e| panic!("Expected Ok, got: {e}"))
+fn parse_ok(input: &str) -> crate::ast::ConkAST {
+    parse_ast_from_string(input).unwrap_or_else(|e| panic!("Expected Ok, got: {e}"))
 }
 
 fn parse_err(input: &str) -> Error {
-    parse_file_from_str(input).unwrap_err()
+    parse_ast_from_string(input).unwrap_err()
 }
 
 fn assert_parse_error(input: &str, desc: &str) {
@@ -24,21 +24,21 @@ fn assert_parse_error(input: &str, desc: &str) {
     }
 }
 
-fn entity(file: &crate::ast::ConkFile, idx: usize) -> &crate::ast::Entity {
+fn entity(file: &crate::ast::ConkAST, idx: usize) -> &crate::ast::Entity {
     match &file.declarations[idx] {
         Declaration::Entity(e) => e,
         d => panic!("Expected Entity at index {idx}, got {:?}", d),
     }
 }
 
-fn template(file: &crate::ast::ConkFile, idx: usize) -> &crate::ast::Template {
+fn template(file: &crate::ast::ConkAST, idx: usize) -> &crate::ast::Template {
     match &file.declarations[idx] {
         Declaration::Template(t) => t,
         d => panic!("Expected Template at index {idx}, got {:?}", d),
     }
 }
 
-fn enum_decl(file: &crate::ast::ConkFile, idx: usize) -> &crate::ast::Enum {
+fn enum_decl(file: &crate::ast::ConkAST, idx: usize) -> &crate::ast::Enum {
     match &file.declarations[idx] {
         Declaration::Enum(e) => e,
         d => panic!("Expected Enum at index {idx}, got {:?}", d),
@@ -1516,7 +1516,7 @@ fn integer_boundary_exceeds_max_i64() {
 
 #[test]
 fn io_error_nonexistent_file() {
-    match parse_file_from_path("/no/such/file.conk") {
+    match parse_ast_from_file("/no/such/file.conk") {
         Err(Error::Io(_)) => {}
         other => panic!("Expected Io error, got {:?}", other),
     }
@@ -1524,7 +1524,7 @@ fn io_error_nonexistent_file() {
 
 #[test]
 fn io_error_directory_path() {
-    match parse_file_from_path("/tmp") {
+    match parse_ast_from_file("/tmp") {
         Err(Error::Io(_)) => {}
         other => panic!("Expected Io error for directory path, got {:?}", other),
     }
@@ -1538,7 +1538,7 @@ fn file_path_valid_file_parses() {
     f.write_all(b"entity A { }").unwrap();
     drop(f);
 
-    let result = parse_file_from_path(&path).unwrap();
+    let result = parse_ast_from_file(&path).unwrap();
     assert_eq!(result.declarations.len(), 1);
     let _ = std::fs::remove_file(&path);
 }
@@ -1549,7 +1549,7 @@ fn file_path_empty_file_parses() {
     let path = dir.join("conk_test_empty.conk");
     std::fs::File::create(&path).unwrap();
 
-    let result = parse_file_from_path(&path).unwrap();
+    let result = parse_ast_from_file(&path).unwrap();
     assert!(result.config.is_none());
     assert!(result.declarations.is_empty());
     let _ = std::fs::remove_file(&path);
@@ -1569,7 +1569,7 @@ fn file_path_with_all_features_parses() {
     f.write_all(contents.as_bytes()).unwrap();
     drop(f);
 
-    let result = parse_file_from_path(&path).unwrap();
+    let result = parse_ast_from_file(&path).unwrap();
     assert!(result.config.is_some());
     assert_eq!(result.declarations.len(), 3);
     let _ = std::fs::remove_file(&path);
