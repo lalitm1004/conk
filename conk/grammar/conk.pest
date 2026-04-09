@@ -104,7 +104,7 @@ block_attribute = {
     "@@" ~ identifier ~ attribute_arguments?
 }
 
-attribute_arguments = {
+attribute_arguments = _{
     "(" ~ argument_sequence? ~ ")"
 }
 
